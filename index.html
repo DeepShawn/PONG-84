@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Aurum Chess · Stockfish 19 · Stable UI</title>
+<style>
+:root{
+  --bg:#08090d;--panel:rgba(20,21,27,.82);--panel2:rgba(31,32,40,.88);
+  --gold:#e5bd63;--gold2:#8d6a28;--text:#f5f1e8;--muted:#aaa59a;
+  --danger:#e35d6a;--ok:#65c18c;--sq1:#d8c6a5;--sq2:#6e5237;
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}.bg{position:fixed;inset:0;width:100%;height:100%;z-index:-2}
+.vignette{position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+radial-gradient(circle at 50% 15%,transparent 0,transparent 35%,rgba(0,0,0,.58) 85%)}
+.screen{display:none;min-height:100vh;padding:28px}.screen.active{display:block}
+.wrap{max-width:1180px;margin:auto}
+.card,.panel{border:1px solid rgba(229,189,99,.22);background:linear-gradient(145deg,rgba(30,30,38,.82),rgba(13,14,18,.9));box-shadow:0 16px 50px rgba(0,0,0,.28);backdrop-filter:blur(12px);border-radius:18px}
+.menu-wrap{max-width:1240px;min-height:calc(100vh - 56px);display:grid;place-items:center;margin:auto}
+.menu-shell{width:100%;display:grid;grid-template-columns:minmax(0,.92fr) minmax(480px,1.08fr);overflow:hidden;border:1px solid rgba(229,189,99,.2);border-radius:30px;background:rgba(10,11,15,.76);box-shadow:0 38px 110px rgba(0,0,0,.52),inset 0 1px rgba(255,255,255,.03);backdrop-filter:blur(20px)}
+.hero-pane{position:relative;min-height:690px;padding:58px 52px;overflow:hidden;background:radial-gradient(circle at 20% 15%,rgba(217,168,63,.17),transparent 32%),linear-gradient(145deg,rgba(35,29,18,.72),rgba(12,13,17,.93) 65%)}
+.hero-pane:before{content:"";position:absolute;width:430px;height:430px;border:1px solid rgba(229,189,99,.14);border-radius:50%;left:-220px;bottom:-160px;box-shadow:0 0 0 40px rgba(229,189,99,.025),0 0 0 95px rgba(229,189,99,.018)}
+.hero-pane:after{content:"♞";position:absolute;right:-12px;bottom:-90px;font:520px/1 Georgia,serif;color:rgba(229,189,99,.035);transform:rotate(-8deg);pointer-events:none}
+.menu-kicker{display:flex;align-items:center;gap:10px;color:#d8bd7b;font-size:11px;font-weight:800;letter-spacing:.28em;text-transform:uppercase}.menu-kicker:before{content:"";width:34px;height:1px;background:var(--gold)}
+.hero-title{font:700 clamp(48px,6.5vw,86px)/.88 Georgia,serif;letter-spacing:.025em;margin:38px 0 22px;color:#f4dfaa;text-shadow:0 0 48px rgba(229,189,99,.14)}
+.hero-title small{display:block;font:650 14px/1.2 Inter,system-ui,sans-serif;letter-spacing:.52em;color:#a89b82;margin-top:22px}
+.hero-copy{max-width:460px;color:#b8b3a9;font-size:15px;line-height:1.8;margin:0 0 28px}
+.feature-row{display:flex;gap:9px;flex-wrap:wrap;margin:24px 0}.feature-chip{padding:7px 10px;border:1px solid rgba(229,189,99,.18);border-radius:999px;background:rgba(255,255,255,.025);font-size:11px;color:#c9c1b1}
+.hero-status{position:absolute;left:52px;right:52px;bottom:44px;display:grid;grid-template-columns:1.3fr .7fr;gap:10px}
+.status-card{padding:13px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:rgba(7,8,11,.58)}.status-card strong{display:block;font-size:12px;color:#e7dcc2}.status-card span{display:block;color:#85837e;font-size:11px;margin-top:5px}.status-line{display:flex;align-items:center;gap:7px}
+.menu-pane{padding:42px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(180deg,rgba(20,21,27,.88),rgba(13,14,18,.94))}.menu-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px}.menu-head h2{margin:0;font-size:24px}.menu-head p{margin:5px 0 0;color:var(--muted);font-size:12px}.version-pill{border:1px solid rgba(101,193,140,.3);color:#9ad9b3;background:rgba(101,193,140,.07);padding:5px 8px;border-radius:999px;font-size:10px;white-space:nowrap}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:11px}.card{position:relative;padding:17px 16px 16px;text-align:left;cursor:pointer;color:inherit;transition:.2s;min-height:116px;overflow:hidden}.card:after{content:"→";position:absolute;right:14px;top:14px;color:#605846;transition:.2s}.card:hover{transform:translateY(-2px);border-color:rgba(229,189,99,.58);background:linear-gradient(145deg,rgba(42,38,28,.88),rgba(17,18,23,.95))}.card:hover:after{color:var(--gold);transform:translateX(2px)}.mode-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:rgba(229,189,99,.09);border:1px solid rgba(229,189,99,.14);color:var(--gold);font-size:18px;margin-bottom:10px}.card b{display:block;color:#f2e8d1;font-size:15px;margin-bottom:5px}.card span{display:block;color:#8e8b84;line-height:1.45;font-size:11px;padding-right:12px}
+.setup{max-width:none;margin:14px 0 0;padding:16px;border-radius:15px;animation:setupIn .2s ease-out}@keyframes setupIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}.setup-title{font-weight:750;font-size:13px;margin-bottom:11px;color:#e8d9b8}.engine-test{display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 10px;border-radius:10px;background:#0d0e12;border:1px solid rgba(255,255,255,.06);color:#8f8d87;font-size:11px}.engine-test .engine-dot{flex:0 0 auto}.engine-diag{margin-top:8px;border:1px solid rgba(255,255,255,.06);border-radius:10px;background:#0b0c10;overflow:hidden}.engine-diag summary{cursor:pointer;padding:8px 10px;color:#9a978f;font-size:11px;user-select:none}.engine-diag pre{margin:0;padding:10px;border-top:1px solid rgba(255,255,255,.05);white-space:pre-wrap;word-break:break-word;color:#b9b5aa;font:10px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;max-height:180px;overflow:auto}.protocol-hint{display:none;margin-top:8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(227,93,106,.22);background:rgba(227,93,106,.06);color:#cfaaa9;font-size:10px;line-height:1.5}.menu-footer{display:flex;justify-content:space-between;gap:10px;color:#62615e;font-size:10px;margin-top:14px;padding:0 3px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+label{color:var(--muted);font-size:13px}.field{display:grid;gap:6px;flex:1;min-width:160px}
+select,input{background:#101116;color:var(--text);border:1px solid #3a3b43;border-radius:10px;padding:10px 12px}
+.btn{border:1px solid rgba(229,189,99,.32);background:#15161c;color:var(--text);padding:10px 14px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--gold)}.btn.primary{background:linear-gradient(135deg,#7e5b1c,#c2943e);color:#fff;border:0}
+.btn.danger{border-color:rgba(227,93,106,.5);color:#ffbdc4}.btn:disabled{opacity:.45;cursor:not-allowed}
+.game-grid{display:grid;grid-template-columns:minmax(0,760px) minmax(300px,340px);gap:22px;justify-content:center;align-items:start;max-width:1140px;margin:0 auto}
+.board-wrap{display:block;width:100%;min-width:0}
+.board-wrap.replay-eval{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:stretch}
+.evalbar{display:none;border-radius:9px;overflow:hidden;background:#16171b;position:relative;border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 0 16px rgba(0,0,0,.42)}
+.board-wrap.replay-eval .evalbar{display:block}
+.eval-white{position:absolute;bottom:0;left:0;right:0;height:50%;background:#eee;transition:height .18s ease-out}
+.eval-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg);font-size:10px;font-weight:800;color:#f2c96f;text-shadow:0 1px 2px #000;white-space:nowrap}
+.board-shell{position:relative;width:100%;aspect-ratio:1;border-radius:14px;overflow:hidden;contain:layout paint;background:#111;border:1px solid rgba(229,189,99,.22);box-shadow:0 22px 64px rgba(0,0,0,.48),0 0 0 5px rgba(229,189,99,.035)}
+.board-shell:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),inset 0 0 28px rgba(0,0,0,.16)}
+#board{display:block;width:100%;height:100%;touch-action:manipulation;background:#111}
+.side{display:grid;gap:14px;min-width:0;overflow-anchor:none}
+#game .panel{padding:15px;border-radius:15px;background:linear-gradient(145deg,rgba(25,26,32,.91),rgba(12,13,17,.94));box-shadow:0 14px 38px rgba(0,0,0,.22)}
+.status{font-weight:760;font-size:16px;letter-spacing:.01em}.sub{color:var(--muted);font-size:12px;margin-top:5px;line-height:1.45}
+#analysisPanel{min-height:178px;overflow-anchor:none}
+.analysis{min-height:136px;align-content:start;overflow-anchor:none}
+.moves{overflow-anchor:none}
+.engine-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#777;margin-right:6px}
+.engine-dot.ok{background:var(--ok);box-shadow:0 0 9px var(--ok)}.engine-dot.bad{background:var(--danger)}
+.moves{height:300px;overflow:auto;display:grid;grid-template-columns:44px 1fr 1fr;align-content:start;font-size:13px}
+.moves>*{padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.04)}.moves .n{color:#777}
+.moves button{background:none;border:0;color:#ddd;text-align:left;padding:5px 7px;cursor:pointer}.moves button:hover{color:var(--gold)}
+.captured{min-height:34px;font-size:23px;letter-spacing:2px;color:#ddd}.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.analysis{display:grid;gap:8px}.pv{background:#101116;border-radius:9px;padding:9px;font-size:12px;line-height:1.45}.pv b{color:var(--gold)}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:30;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}.modalbox{max-width:520px;width:100%;padding:20px}.promo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.promo button{font-size:44px;padding:14px}.toast{position:fixed;right:18px;bottom:18px;z-index:60;background:#18191f;border:1px solid #4c4c55;
+padding:11px 14px;border-radius:10px;max-width:min(420px,90vw);opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:none}.records{max-width:900px;margin:auto}.record{display:grid;grid-template-columns:1fr auto;gap:10px;padding:14px 16px;
+border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}.record:hover{background:rgba(255,255,255,.03)}
+.record .meta{color:var(--muted);font-size:12px;margin-top:5px}.empty{text-align:center;color:var(--muted);padding:40px}
+.lanbox{display:grid;gap:10px;margin-top:10px}.code{font-size:30px;letter-spacing:.25em;text-align:center;font-weight:800;color:var(--gold)}
+.badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#222;font-size:11px;color:#bbb}
+@media(max-width:980px){.screen{padding:16px}.menu-shell{grid-template-columns:1fr}.hero-pane{min-height:330px;padding:38px 34px}.hero-title{margin:22px 0 14px}.hero-copy{margin-bottom:12px}.hero-status{position:static;margin-top:22px}.menu-pane{padding:30px 34px}.game-grid{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}.moves{height:220px}.span2{grid-column:1/-1}}
+@media(max-width:600px){.screen{padding:10px}.menu-shell{border-radius:20px}.hero-pane{min-height:280px;padding:28px 22px}.hero-title{font-size:48px}.hero-title small{letter-spacing:.34em}.hero-copy{font-size:13px}.hero-status{grid-template-columns:1fr}.menu-pane{padding:24px 18px}.cards{grid-template-columns:1fr 1fr}.card{min-height:110px;padding:14px}.menu-footer{display:none}.side{grid-template-columns:1fr}.span2{grid-column:auto}.board-wrap{grid-template-columns:18px 1fr}.toolbar .btn{flex:1}}
+@media(max-width:420px){.cards{grid-template-columns:1fr}.card{min-height:94px}.mode-icon{margin-bottom:7px}}
+
+/* v5: Android content:// + replay viewport stability */
+html,body{width:100%;max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}
+body{touch-action:pan-y;overflow-anchor:none}
+#game{overflow-anchor:none}
+.screen,.wrap,.game-grid,.board-wrap,.board-shell,.side,.panel{min-width:0;max-width:100%}
+.game-grid{width:100%}
+.board-wrap{width:100%;overflow:hidden}
+.board-shell{max-width:100%;margin:0 auto}
+#board{max-width:100%;touch-action:manipulation}
+.side>*{min-width:0}
+.moves,.analysis,.pv{min-width:0;max-width:100%}
+.pv{overflow-wrap:anywhere;word-break:break-word}
+.record{min-width:0;max-width:100%;overflow:hidden;touch-action:manipulation}
+.record>div{min-width:0}
+.record .meta{overflow-wrap:anywhere}
+@media(max-width:860px){
+  #game.screen{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+  .game-grid{display:block}
+  .board-wrap{width:100%;max-width:100%;margin:0 auto 16px}
+  .board-wrap.replay-eval{grid-template-columns:18px minmax(0,1fr);gap:7px}
+  .side{display:grid;width:100%;max-width:100%;overflow:hidden}
+}
+
+
+/* ===== Aurum Cloud / Leaderboard ===== */
+.cloud-account{display:flex;align-items:center;gap:10px;padding:11px 12px;margin-bottom:12px;border:1px solid rgba(229,189,99,.15);background:rgba(8,9,13,.56);border-radius:14px;min-width:0}
+.cloud-avatar{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:50%;background:linear-gradient(145deg,#77571f,#d0a852);color:#111;font-weight:900}
+.cloud-who{min-width:0;flex:1}.cloud-who b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cloud-who span{display:block;color:#77746e;font-size:10px;margin-top:3px}
+.cloud-actions{display:flex;gap:6px;flex-wrap:wrap}.cloud-actions .btn{padding:7px 9px;font-size:10px}
+.rank-toggle{display:flex;align-items:center;gap:9px;margin-top:10px;padding:10px;border:1px solid rgba(229,189,99,.14);border-radius:11px;background:rgba(229,189,99,.035);font-size:11px;color:#b9b3a7}
+.rank-toggle input{width:17px;height:17px;accent-color:#c89d48}.rank-toggle small{display:block;color:#706d67;margin-top:2px}
+.leader-wrap{max-width:980px;margin:auto}.leader-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
+.leader-title h2{margin:0;font:700 30px Georgia,serif;color:#ead293}.leader-title p{margin:5px 0 0;color:var(--muted);font-size:12px}
+.my-rating{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.rating-stat{padding:15px;border-radius:14px;border:1px solid rgba(229,189,99,.16);background:rgba(15,16,21,.8)}
+.rating-stat span{display:block;color:#7e7a72;font-size:10px;text-transform:uppercase;letter-spacing:.12em}.rating-stat b{display:block;font-size:22px;margin-top:6px;color:#f0dfb6}
+.leader-table{width:100%;border-collapse:collapse;font-size:13px}.leader-table th,.leader-table td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,.055);text-align:left}
+.leader-table th{position:sticky;top:0;background:#121319;color:#807d76;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.leader-table tr.me{background:rgba(229,189,99,.07)}
+.leader-table .rank{width:62px;color:#8b867c;font-weight:800}.leader-table .score{font-weight:900;color:#e8c66e}.leader-table .recordtxt{color:#88847d}
+.cloud-note{padding:10px 12px;border-radius:10px;background:rgba(89,126,187,.08);border:1px solid rgba(89,126,187,.16);color:#9baabd;font-size:11px;line-height:1.55}
+.auth-grid{display:grid;gap:10px}.auth-tabs{display:flex;gap:7px;margin-bottom:10px}.auth-tabs .btn.active{border-color:var(--gold);color:var(--gold)}
+.auth-msg{min-height:18px;color:#c1a66b;font-size:11px}.config-bad{color:#e19393!important}.score-pop{font-size:15px;line-height:1.6}.score-pop strong{color:#e7c66d;font-size:24px}
+@media(max-width:600px){input,select,textarea{font-size:16px}.cloud-account{align-items:flex-start}.cloud-actions{justify-content:flex-end}.my-rating{grid-template-columns:1fr 1fr}.my-rating .rating-stat:last-child{grid-column:1/-1}.leader-table th,.leader-table td{padding:9px 7px;font-size:11px}.hide-mobile{display:none}}
+
+</style>
+</head>
+<body>
+<canvas id="bg" class="bg"></canvas><div class="vignette"></div>
+<section id="menu" class="screen active">
+  <div class="menu-wrap">
+    <div class="menu-shell">
+      <div class="hero-pane">
+        <div class="menu-kicker">Aurum Engine Suite</div>
+        <h1 class="hero-title">AURUM<br>CHESS<small>THE ROYAL GAME</small></h1>
+        <p class="hero-copy">完整国际象棋规则、标准 SAN 记谱、Stockfish 19 对弈与分析，以及无需自建服务器的 WebRTC 联机。</p>
+        <div class="feature-row"><span class="feature-chip">Stockfish 19</span><span class="feature-chip">MultiPV ×3</span><span class="feature-chip">FEN Replay</span><span class="feature-chip">WebRTC</span></div>
+        <div class="hero-status">
+          <div class="status-card"><div class="status-line"><span id="menuEngineDot" class="engine-dot"></span><strong id="menuEngineStatus">Stockfish 19 · 待加载</strong></div><span id="menuEngineDetail">默认使用 Lite Single WASM；失败自动降级 ASM / 内置 AI</span></div>
+          <div class="status-card"><strong>本地档案</strong><span><b id="recordCount" style="color:#d9be7e">0</b> 局已保存</span></div>
+        </div>
+      </div>
+      <div class="menu-pane">
+        <div class="menu-head"><div><h2>开始对局</h2><p>选择一种模式继续</p></div><span class="version-pill">ENGINE 19.0.0</span></div>
+        <div class="cloud-account">
+          <div class="cloud-avatar" id="cloudAvatar">?</div>
+          <div class="cloud-who"><b id="cloudName">未登录</b><span id="cloudMeta">登录后，挑战 AI 可获得排行榜积分</span></div>
+          <div class="cloud-actions">
+            <button class="btn" id="authBtn">登录 / 注册</button>
+            <button class="btn" id="signOutBtn" style="display:none">退出</button>
+            <a class="btn" id="adminLink" href="admin.html" style="display:none;text-decoration:none">管理</a>
+          </div>
+        </div>
+        <div class="cards">
+          <button class="card" data-mode="local"><span class="mode-icon">♟</span><b>本地双人</b><span>同一设备轮流操作，完整规则与标准记谱。</span></button>
+          <button class="card" data-mode="ai"><span class="mode-icon">♞</span><b>挑战 AI</b><span>Stockfish 19，8 档强度，加载失败自动回退。</span></button>
+          <button class="card" data-mode="lan"><span class="mode-icon">◎</span><b>联机对战</b><span>PeerJS + WebRTC，3 位房间号快速连接。</span></button>
+          <button class="card" id="recordsBtn"><span class="mode-icon">◫</span><b>棋局档案</b><span>最近 200 局、FEN 回放、Stockfish 多 PV 分析。</span></button>
+          <button class="card" id="leaderboardBtn"><span class="mode-icon">♜</span><b>全球排行榜</b><span>AI Rating、胜和负与个人排名；登录后可参与积分。</span></button>
+        </div>
+        <div id="setup" class="panel setup" style="display:none">
+          <div class="setup-title" id="setupTitle">对局设置</div>
+          <div class="row">
+            <div class="field" id="colorField"><label>执棋</label><select id="playerColor"><option value="w">白方</option><option value="b">黑方</option><option value="r">随机</option></select></div>
+            <div class="field" id="diffField"><label>AI 难度</label><select id="difficulty"></select></div>
+            <div class="field" id="engineField"><label>引擎</label><select id="engineChoice">
+              <option value="sf19-lite">Stockfish 19 Lite Single（推荐）</option>
+              <option value="sf19-full">Stockfish 19 Full Single（大文件）</option>
+              <option value="sf19-asm">Stockfish 19 ASM（兼容）</option>
+              <option value="builtin">内置回退 AI</option>
+            </select></div>
+          </div>
+          <label id="rankedRow" class="rank-toggle" style="display:none">
+            <input id="rankedGame" type="checkbox" checked>
+            <span><b style="color:#dfc37c">计入 AI 排行榜</b><small id="rankedHint">需要登录；只有 Stockfish 19 对局会计分。</small></span>
+          </label>
+          <div id="engineTestRow" class="engine-test" style="display:none"><span id="testDot" class="engine-dot"></span><span id="testText">可先测试 Stockfish 19 是否能在当前浏览器启动</span><button class="btn" id="engineTestBtn" style="margin-left:auto;padding:6px 9px">引擎自检</button></div>
+          <div id="protocolHint" class="protocol-hint">当前为本地档案环境。将跳过 Android 会拦截的 content:// Worker，直接从 npm CDN 的 <b>/bin</b> 加载 Stockfish 19。</div>
+          <details id="engineDiag" class="engine-diag" style="display:none"><summary>查看引擎诊断日志</summary><pre id="engineDiagLog">尚未运行自检。</pre></details>
+          <div id="lanSetup" class="lanbox" style="display:none">
+            <label>3 位房间号（双方输入相同号码）</label>
+            <input id="roomCode" inputmode="numeric" maxlength="3" pattern="[0-9]{3}" placeholder="例如 314">
+            <div class="sub">先进入房间的一方作为房主并执白；后进入的一方执黑。</div>
+          </div>
+          <div class="row" style="margin-top:14px"><button class="btn primary" id="startBtn">开始对局</button><button class="btn" id="cancelSetup">取消</button></div>
+        </div>
+        <div class="menu-footer"><span>Rules · SAN · Castling · En passant · Promotion</span><span>v7 · Stable UI + Cloud Ranking</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="game" class="screen">
+<div class="wrap game-grid">
+  <div class="board-wrap" id="boardWrap">
+    <div class="evalbar" id="evalBar"><div class="eval-white" id="evalWhite"></div><div class="eval-label" id="evalLabel">0.0</div></div>
+    <div class="board-shell"><canvas id="board"></canvas></div>
+  </div>
+  <aside class="side">
+    <div class="panel span2"><div class="status" id="status">准备中</div><div class="sub" id="status2"></div><div class="sub"><span id="engineDot" class="engine-dot"></span><span id="engineStatus">引擎未加载</span></div></div>
+    <div class="panel"><label>被吃棋子</label><div class="captured" id="captured"></div></div>
+    <div class="panel"><label>着法</label><div class="moves" id="moveList"></div></div>
+    <div class="panel span2" id="analysisPanel" style="display:none"><label>Stockfish 19 · MultiPV 3</label><div class="analysis" id="analysis"></div></div>
+    <div class="panel span2"><div class="toolbar">
+      <button class="btn" id="undoBtn">悔棋</button><button class="btn" id="flipBtn">翻转</button>
+      <button class="btn" id="drawBtn">和棋</button><button class="btn danger" id="resignBtn">认输</button>
+      <button class="btn" id="menuBtn">返回菜单</button>
+    </div><div class="toolbar" id="replayControls" style="display:none;margin-top:10px">
+      <button class="btn" data-r="first">|◀</button><button class="btn" data-r="prev">◀</button><button class="btn" data-r="play">▶</button>
+      <button class="btn" data-r="next">▶</button><button class="btn" data-r="last">▶|</button>
+      <select id="replaySpeed"><option>.5</option><option selected>1</option><option>1.5</option><option>2</option></select>
+    </div></div>
+  </aside>
+</div>
+</section>
+
+<section id="records" class="screen"><div class="wrap records">
+<div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>对局记录</h2><button class="btn" id="recordsBack">返回</button></div>
+<div class="panel" id="recordsList"></div></div></section>
+
+<section id="leaderboard" class="screen"><div class="leader-wrap">
+  <div class="leader-head">
+    <div class="leader-title"><h2>AI 排行榜</h2><p>由服务端校验棋局并计算等级分；封禁账号不会显示。</p></div>
+    <div class="row"><button class="btn" id="leaderRefresh">刷新</button><button class="btn" id="leaderBack">返回</button></div>
+  </div>
+  <div class="my-rating">
+    <div class="rating-stat"><span>我的积分</span><b id="myRating">—</b></div>
+    <div class="rating-stat"><span>最高积分</span><b id="myPeak">—</b></div>
+    <div class="rating-stat"><span>对局</span><b id="myGames">—</b></div>
+  </div>
+  <div class="panel" style="overflow:auto">
+    <table class="leader-table"><thead><tr><th>排名</th><th>玩家</th><th>积分</th><th class="hide-mobile">最高</th><th>对局</th><th class="hide-mobile">战绩</th></tr></thead><tbody id="leaderRows"><tr><td colspan="6" class="empty">正在加载…</td></tr></tbody></table>
+  </div>
+  <div class="cloud-note" style="margin-top:12px">积分只在已登录的 Stockfish 19 人机对局结束后提交。浏览器端无法做到绝对防作弊，因此服务端会复盘合法走法、做重复提交/频率/封禁检查；若要做到竞技级防作弊，需要把 AI 走棋也迁移到服务器。</div>
+</div></section>
+
+<div id="promoModal" class="modal"><div class="modalbox panel"><h3>兵升变</h3><div class="promo" id="promoBtns"></div></div></div>
+<div id="dialog" class="modal"><div class="modalbox panel"><h3 id="dialogTitle">提示</h3><p id="dialogText"></p><div class="row" id="dialogActions"></div></div></div>
+
+<div id="authModal" class="modal"><div class="modalbox panel">
+  <h3 id="authTitle">账号</h3>
+  <div class="auth-tabs"><button class="btn active" id="loginTab">登录</button><button class="btn" id="signupTab">注册</button></div>
+  <div class="auth-grid">
+    <div class="field" id="usernameField" style="display:none"><label>用户名</label><input id="authUsername" maxlength="20" autocomplete="username" placeholder="3–20 个字母/数字/下划线"></div>
+    <div class="field"><label>邮箱</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+    <div class="field"><label>密码</label><input id="authPassword" type="password" minlength="6" autocomplete="current-password" placeholder="至少 6 位"></div>
+    <div id="authMsg" class="auth-msg"></div>
+    <div class="row"><button class="btn primary" id="authSubmit">登录</button><button class="btn" id="authClose">取消</button></div>
+  </div>
+</div></div>
+<div id="toast" class="toast"></div>
+
+<script type="module">
+import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import * as PeerNS from 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const Peer = PeerNS.Peer || PeerNS.default;
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+// ===== 云端排行榜配置 =====
+// 只填写 Supabase 的 Project URL 与 Publishable/anon key。
+// 绝对不要把 service_role / secret key 写进 HTML。
+const SUPABASE_URL='https://YOUR_PROJECT_REF.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='YOUR_SUPABASE_PUBLISHABLE_KEY';
+const CLOUD_CONFIGURED=!SUPABASE_URL.includes('YOUR_PROJECT_REF')&&!SUPABASE_PUBLISHABLE_KEY.includes('YOUR_SUPABASE');
+const supabase=CLOUD_CONFIGURED?createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
+let cloudUser=null,cloudProfile=null,authMode='login',rankedRequested=false;
+const getDeviceId=()=>{
+  let id=localStorage.getItem('aurumDeviceId');
+  if(!id){id=(crypto.randomUUID?.()||('dev-'+Date.now()+'-'+Math.random().toString(36).slice(2)));localStorage.setItem('aurumDeviceId',id)}
+  return id
+};
+
+const PIECE={wp:'♙',wn:'♘',wb:'♗',wr:'♖',wq:'♕',wk:'♔',bp:'♟',bn:'♞',bb:'♝',br:'♜',bq:'♛',bk:'♚'};
+const VALUE={p:100,n:320,b:330,r:500,q:900,k:0};
+const DIFF=[
+  ['入门',-20,1],['初学',-10,2],['休闲',0,4],['普通',4,7],['进阶',8,10],['高手',13,13],['专家',17,16],['宗师',20,20]
+];
+for(let i=0;i<DIFF.length;i++) $('#difficulty').insertAdjacentHTML('beforeend',`<option value="${i}">${i+1}. ${DIFF[i][0]}</option>`);
+
+let chess=new Chess(), mode='local', human='w', orientation='w', selected=null, targets=[], lastMove=null;
+let gameStart=0, ended=false, currentRecord=null, replayIndex=0, replayTimer=null, replayMode=false;
+let peer=null,conn=null,host=false,room='',engine=null,analysisEngine=null,engineReady=false,engineBusy=false;
+let pendingPromotion=null, drawOfferPending=false, activeEngineKind='sf19-lite';
+
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2600)}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function updateMenuMeta(){const e=$('#recordCount');if(e)e.textContent=getRecords().length}
+function show(id){$$('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active')}
+function dialog(title,text,actions=[['确定',()=>closeDialog()]]){
+  $('#dialogTitle').textContent=title;$('#dialogText').textContent=text;const a=$('#dialogActions');a.innerHTML='';
+  actions.forEach(([txt,fn,cls])=>{let b=document.createElement('button');b.className='btn '+(cls||'');b.textContent=txt;b.onclick=fn;a.appendChild(b)});
+  $('#dialog').classList.add('show');
+}
+function closeDialog(){ $('#dialog').classList.remove('show') }
+
+$$('.card[data-mode]').forEach(b=>b.onclick=()=>{
+  mode=b.dataset.mode; $('#setup').style.display='block';
+  $('#setupTitle').textContent=mode==='ai'?'AI 对局设置':mode==='lan'?'联机房间设置':'本地对局';
+  $('#lanSetup').style.display=mode==='lan'?'grid':'none';
+  $('#diffField').style.display=mode==='ai'?'grid':'none';$('#engineField').style.display=mode==='ai'?'grid':'none';
+  $('#colorField').style.display=mode==='ai'?'grid':'none';$('#engineTestRow').style.display=mode==='ai'?'flex':'none';$('#rankedRow').style.display=mode==='ai'?'flex':'none';updateRankedHint();
+  $$('.card[data-mode]').forEach(x=>x.style.borderColor=x===b?'rgba(229,189,99,.72)':'');
+});
+$('#cancelSetup').onclick=()=>{$('#setup').style.display='none';$$('.card[data-mode]').forEach(x=>x.style.borderColor='')};
+$('#engineChoice').onchange=()=>{stopEngines();$('#testText').textContent='引擎选择已改变，可重新自检';$('#testDot').className='engine-dot'};
+$('#engineTestBtn').onclick=async()=>{
+  const b=$('#engineTestBtn'),t=$('#testText'),d=$('#testDot'),choice=$('#engineChoice').value;
+  b.disabled=true;d.className='engine-dot';$('#engineDiag').style.display='block';$('#engineDiag').open=true;
+  try{
+    stopEngines();activeEngineKind=choice;
+    if(choice==='builtin'){t.textContent='当前选择内置 AI，不需要加载 Stockfish';d.className='engine-dot ok';$('#engineDiagLog').textContent='内置 AI 已可用。';return}
+    t.textContent='正在测试 Stockfish 19…';const ok=await ensureEngine(false);
+    $('#engineDiagLog').textContent=(lastEngineDiagnostics.length?lastEngineDiagnostics:['无诊断信息']).join('\n');
+    if(ok){t.textContent=`自检通过：${engine?._buildLabel||'Stockfish 19'} · ${engine?._loaderRoute||'Worker'}`;d.className='engine-dot ok'}
+    else{t.textContent='Stockfish 19 未启动；请展开诊断日志查看失败阶段';d.className='engine-dot bad'}
+  }finally{b.disabled=false}
+};
+$('#startBtn').onclick=async()=>{
+  if(mode==='ai'){
+    human=$('#playerColor').value;if(human==='r')human=Math.random()<.5?'w':'b';orientation=human;activeEngineKind=$('#engineChoice').value;
+    rankedRequested=$('#rankedGame').checked;
+    if(rankedRequested&&!cloudUser){toast('计分对局需要先登录');openAuth('login');return}
+    if(rankedRequested&&activeEngineKind==='builtin'){toast('内置回退 AI 不参与排行榜');return}
+  }
+  if(mode==='lan'){room=$('#roomCode').value.trim();if(!/^\d{3}$/.test(room)){toast('请输入 3 位房间号');return}}
+  startGame();
+  if(mode==='lan') await startPeer(room);
+  if(mode==='ai'){
+    let sfOk=true;
+    if(activeEngineKind!=='builtin')sfOk=await ensureEngine(false);
+    if(rankedRequested&&!sfOk){rankedRequested=false;toast('Stockfish 19 未启动，本局自动改为非计分对局')}
+    maybeAITurn();
+  }
+};
+function startGame(){
+  chess=new Chess();selected=null;targets=[];lastMove=null;ended=false;replayMode=false;currentRecord=null;gameStart=Date.now();
+  $('#boardWrap').classList.remove('replay-eval');$('#evalWhite').style.height='50%';$('#evalLabel').textContent='0.0';
+  $('#analysisPanel').style.display='none';$('#replayControls').style.display='none';$('#undoBtn').style.display='inline-block';
+  $('#drawBtn').style.display='inline-block';$('#resignBtn').style.display='inline-block';show('#game');updateAll();settleBoardLayout();
+}
+$('#menuBtn').onclick=async()=>{stopReplay();stopEngines();closePeer();await loadMyProfile();renderCloudAccount();show('#menu')};
+$('#recordsBack').onclick=()=>show('#menu');
+$('#recordsBtn').onclick=()=>{renderRecords();show('#records')};
+
+
+// ===== Supabase Auth / 排行榜 =====
+function updateRankedHint(){
+  const h=$('#rankedHint'),c=$('#rankedGame');
+  if(!h||!c)return;
+  if(!CLOUD_CONFIGURED){h.textContent='尚未配置 Supabase；请按部署说明填写 URL 与 Publishable Key。';h.classList.add('config-bad');c.checked=false;c.disabled=true}
+  else if(!cloudUser){h.textContent='需要登录；只有 Stockfish 19 对局会计分。';h.classList.remove('config-bad');c.disabled=false}
+  else{h.textContent=`已登录 ${cloudProfile?.username||cloudUser.email}；服务端校验后更新积分。`;h.classList.remove('config-bad');c.disabled=false}
+}
+function openAuth(modeName='login'){authMode=modeName;$('#authModal').classList.add('show');syncAuthTabs()}
+function syncAuthTabs(){
+  const signup=authMode==='signup';$('#usernameField').style.display=signup?'grid':'none';$('#authSubmit').textContent=signup?'创建账号':'登录';
+  $('#loginTab').classList.toggle('active',!signup);$('#signupTab').classList.toggle('active',signup);$('#authPassword').autocomplete=signup?'new-password':'current-password';$('#authMsg').textContent=''
+}
+$('#loginTab').onclick=()=>{authMode='login';syncAuthTabs()};
+$('#signupTab').onclick=()=>{authMode='signup';syncAuthTabs()};
+$('#authClose').onclick=()=>$('#authModal').classList.remove('show');
+$('#authBtn').onclick=()=>openAuth('login');
+$('#signOutBtn').onclick=async()=>{if(supabase)await supabase.auth.signOut();cloudUser=cloudProfile=null;renderCloudAccount();toast('已退出账号')};
+$('#authSubmit').onclick=async()=>{
+  const msg=$('#authMsg');if(!CLOUD_CONFIGURED){msg.textContent='请先填写 Supabase 配置。';return}
+  const email=$('#authEmail').value.trim(),password=$('#authPassword').value,username=$('#authUsername').value.trim();
+  try{
+    if(authMode==='signup'){
+      if(!/^[A-Za-z0-9_\-\u4e00-\u9fff]{3,20}$/.test(username)){msg.textContent='用户名需 3–20 个字符，可用中英文、数字、_、-。';return}
+      const {data,error}=await supabase.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;
+      msg.textContent=data.session?'注册成功。':'注册成功；若项目开启邮箱验证，请先查看邮箱。';if(data.session)setTimeout(()=>$('#authModal').classList.remove('show'),500)
+    }else{
+      const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;$('#authModal').classList.remove('show')
+    }
+  }catch(e){msg.textContent=e.message||String(e)}
+};
+async function loadMyProfile(){
+  if(!supabase||!cloudUser){cloudProfile=null;return}
+  const {data,error}=await supabase.from('profiles').select('user_id,username,rating,peak_rating,games_played,wins,draws,losses,role,is_banned').eq('user_id',cloudUser.id).maybeSingle();
+  if(error){console.warn('profile',error);cloudProfile=null;return}
+  cloudProfile=data;if(data?.is_banned){toast('此账号已被封禁，排行榜计分不可用')}
+}
+function renderCloudAccount(){
+  const n=$('#cloudName'),m=$('#cloudMeta'),a=$('#cloudAvatar');
+  if(!CLOUD_CONFIGURED){n.textContent='云排行榜未配置';m.textContent='部署时填写 Supabase URL + Publishable Key';a.textContent='!';$('#authBtn').style.display='inline-block';$('#signOutBtn').style.display='none';$('#adminLink').style.display='none';updateRankedHint();return}
+  if(!cloudUser){n.textContent='未登录';m.textContent='登录后挑战 AI 可获得排行榜积分';a.textContent='?';$('#authBtn').style.display='inline-block';$('#signOutBtn').style.display='none';$('#adminLink').style.display='none'}
+  else{const name=cloudProfile?.username||cloudUser.email||'Player';n.textContent=name;m.textContent=`AI Rating ${cloudProfile?.rating??'…'} · ${cloudProfile?.games_played??0} 局`;a.textContent=name.slice(0,1).toUpperCase();$('#authBtn').style.display='none';$('#signOutBtn').style.display='inline-block';$('#adminLink').style.display=['admin','moderator'].includes(cloudProfile?.role)?'inline-block':'none'}
+  updateRankedHint()
+}
+async function initCloud(){
+  renderCloudAccount();if(!supabase)return;
+  const {data:{session}}=await supabase.auth.getSession();cloudUser=session?.user||null;if(cloudUser)await loadMyProfile();renderCloudAccount();
+  supabase.auth.onAuthStateChange(async(_event,session)=>{cloudUser=session?.user||null;if(cloudUser)await loadMyProfile();else cloudProfile=null;renderCloudAccount()})
+}
+async function refreshLeaderboard(){
+  const rows=$('#leaderRows');rows.innerHTML='<tr><td colspan="6" class="empty">正在加载…</td></tr>';
+  if(!supabase){rows.innerHTML='<tr><td colspan="6" class="empty">尚未配置 Supabase。</td></tr>';return}
+  const {data,error}=await supabase.rpc('get_leaderboard',{p_limit:100});
+  if(error){rows.innerHTML=`<tr><td colspan="6" class="empty">${escapeHtml(error.message)}</td></tr>`;return}
+  rows.innerHTML='';
+  for(const r of data||[]){const tr=document.createElement('tr');if(cloudProfile?.username===r.username)tr.className='me';tr.innerHTML=`<td class="rank">#${r.rank}</td><td><b>${escapeHtml(r.username)}</b></td><td class="score">${r.rating}</td><td class="hide-mobile">${r.peak_rating}</td><td>${r.games_played}</td><td class="recordtxt hide-mobile">${r.wins}-${r.draws}-${r.losses}</td>`;rows.appendChild(tr)}
+  if(!data?.length)rows.innerHTML='<tr><td colspan="6" class="empty">暂无排行榜数据</td></tr>';
+  $('#myRating').textContent=cloudProfile?.rating??'—';$('#myPeak').textContent=cloudProfile?.peak_rating??'—';$('#myGames').textContent=cloudProfile?.games_played??'—'
+}
+$('#leaderboardBtn').onclick=async()=>{await loadMyProfile();renderCloudAccount();show('#leaderboard');await refreshLeaderboard()};
+$('#leaderBack').onclick=()=>show('#menu');
+$('#leaderRefresh').onclick=async()=>{await loadMyProfile();renderCloudAccount();await refreshLeaderboard()};
+async function submitRankedAI(rec){
+  if(!supabase||!cloudUser)return {error:'未登录或云排行榜未配置'};
+  if(rec.usedBuiltin)return {error:'本局曾使用内置回退 AI，因此不计分'};
+  if(!Number.isInteger(rec.difficulty)||rec.difficulty<0||rec.difficulty>7)return {error:'难度数据无效'};
+  const payload={
+    clientGameId:rec.clientGameId,difficulty:rec.difficulty,playerColor:rec.playerColor,
+    moves:rec.moves.map(x=>x.uci),durationMs:rec.duration,reason:rec.reason,result:rec.result,
+    engine:rec.engine||'Stockfish 19',deviceId:getDeviceId()
+  };
+  const {data,error}=await supabase.functions.invoke('submit-ai-game',{body:payload});
+  if(error)return {error:error.message||String(error)};
+  if(data?.error)return {error:data.error};
+  await loadMyProfile();renderCloudAccount();return data
+}
+initCloud();
+
+const board=$('#board'),ctx=board.getContext('2d');
+let boardResizeRAF=0,lastCanvasCssSize=0;
+function resizeBoard(){
+  if(!$('#game').classList.contains('active'))return;
+  const shell=board.parentElement;
+  const r=shell.getBoundingClientRect();
+  const cssSize=Math.max(1,Math.floor(Math.min(r.width,r.height||r.width)));
+  if(cssSize<80)return;
+  const dpr=Math.max(1,Math.min(3,devicePixelRatio||1));
+  const px=Math.round(cssSize*dpr);
+  const changed=Math.abs(cssSize-lastCanvasCssSize)>=1||board.width!==px||board.height!==px;
+  if(changed){
+    lastCanvasCssSize=cssSize;
+    board.width=px;board.height=px;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  drawBoard()
+}
+function settleBoardLayout(){
+  cancelAnimationFrame(boardResizeRAF);
+  boardResizeRAF=requestAnimationFrame(()=>requestAnimationFrame(resizeBoard));
+}
+const boardObserver='ResizeObserver' in window?new ResizeObserver(()=>settleBoardLayout()):null;
+boardObserver?.observe(board.parentElement);
+addEventListener('resize',settleBoardLayout,{passive:true});
+addEventListener('orientationchange',()=>setTimeout(settleBoardLayout,120),{passive:true});
+function sqToXY(sq){let f=sq.charCodeAt(0)-97,r=+sq[1]-1;if(orientation==='w')return [f,7-r];return [7-f,r]}
+function xyToSq(x,y){if(orientation==='w')return String.fromCharCode(97+x)+(8-y);return String.fromCharCode(104-x)+(y+1)}
+function drawBoard(){
+  const W=board.clientWidth,S=W/8;ctx.clearRect(0,0,W,W);
+  for(let y=0;y<8;y++)for(let x=0;x<8;x++){
+    const sq=xyToSq(x,y),light=(x+y)%2===0;ctx.fillStyle=light?'#d9c7a6':'#70543a';ctx.fillRect(x*S,y*S,S,S);
+    if(lastMove&&(sq===lastMove.from||sq===lastMove.to)){ctx.fillStyle='rgba(230,190,70,.38)';ctx.fillRect(x*S,y*S,S,S)}
+    if(sq===selected){ctx.fillStyle='rgba(246,215,111,.46)';ctx.fillRect(x*S,y*S,S,S)}
+  }
+  if(chess.isCheck()){const king=findKing(chess.turn());if(king){let [x,y]=sqToXY(king);let g=ctx.createRadialGradient((x+.5)*S,(y+.5)*S,3,(x+.5)*S,(y+.5)*S,S*.65);g.addColorStop(0,'rgba(255,40,55,.75)');g.addColorStop(1,'rgba(255,0,0,0)');ctx.fillStyle=g;ctx.fillRect(x*S,y*S,S,S)}}
+  for(const m of targets){let [x,y]=sqToXY(m.to);ctx.beginPath();ctx.arc((x+.5)*S,(y+.5)*S,m.captured?S*.34:S*.11,0,Math.PI*2);
+    if(m.captured){ctx.strokeStyle='rgba(185,30,40,.8)';ctx.lineWidth=4;ctx.stroke()}else{ctx.fillStyle='rgba(20,20,20,.35)';ctx.fill()}}
+  const b=chess.board();
+  for(let rank=0;rank<8;rank++)for(let file=0;file<8;file++){const p=b[rank][file];if(!p)continue;const sq=String.fromCharCode(97+file)+(8-rank),[x,y]=sqToXY(sq);
+    ctx.save();ctx.font=`${S*.72}px "Segoe UI Symbol","Noto Sans Symbols 2",serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+    ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=5;ctx.lineWidth=Math.max(1.2,S*.018);ctx.strokeStyle=p.color==='w'?'#4b4032':'#050505';ctx.fillStyle=p.color==='w'?'#fffaf0':'#171717';
+    const glyph=PIECE[p.color+p.type];ctx.strokeText(glyph,(x+.5)*S,(y+.53)*S);ctx.fillText(glyph,(x+.5)*S,(y+.53)*S);ctx.restore()}
+  ctx.font=`${Math.max(9,S*.12)}px system-ui`;ctx.fillStyle='rgba(0,0,0,.55)';
+  for(let i=0;i<8;i++){ctx.fillText(orientation==='w'?String.fromCharCode(97+i):String.fromCharCode(104-i),i*S+4,W-4)}
+}
+function findKing(c){for(const row of chess.board())for(const p of row||[]){if(p&&p.type==='k'&&p.color===c)return p.square}return null}
+board.addEventListener('click',async e=>{
+  if(ended||replayMode||engineBusy)return;
+  if(mode==='ai'&&chess.turn()!==human)return;
+  if(mode==='lan'&&(!conn||chess.turn()!==human))return;
+  const r=board.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/(r.width/8)),y=Math.floor((e.clientY-r.top)/(r.height/8)),sq=xyToSq(x,y);
+  const p=chess.get(sq);
+  if(selected){
+    const candidates=targets.filter(m=>m.to===sq);
+    if(candidates.length){
+      if(candidates.some(m=>m.promotion)){pendingPromotion={from:selected,to:sq};showPromotion();return}
+      makeMove({from:selected,to:sq});return;
+    }
+  }
+  if(p&&p.color===chess.turn()){selected=sq;targets=chess.moves({square:sq,verbose:true});drawBoard()} else {selected=null;targets=[];drawBoard()}
+});
+function showPromotion(){
+  const box=$('#promoBtns');box.innerHTML='';
+  for(const p of ['q','r','b','n']){let b=document.createElement('button');b.className='btn';b.textContent=PIECE[chess.turn()+p];b.onclick=()=>{let m={...pendingPromotion,promotion:p};pendingPromotion=null;$('#promoModal').classList.remove('show');makeMove(m)};box.appendChild(b)}
+  $('#promoModal').classList.add('show')
+}
+function makeMove(spec,remote=false){
+  const fenBefore=chess.fen();let m;
+  try{m=chess.move(spec)}catch{return false}if(!m)return false;
+  lastMove={from:m.from,to:m.to};selected=null;targets=[];
+  const item={san:m.san,uci:m.from+m.to+(m.promotion||''),fenBefore,fenAfter:chess.fen()};
+  if(!currentRecord)currentRecord={mode,startFen:new Chess().fen(),moves:[],startedAt:gameStart,playerColor:human,difficulty:mode==='ai'?+$('#difficulty').value:null,rankedRequested:mode==='ai'&&rankedRequested,clientGameId:crypto.randomUUID?.()||('game-'+Date.now()+'-'+Math.random().toString(36).slice(2)),engine:mode==='ai'?(engine?._buildLabel||activeEngineKind):null,usedBuiltin:false};
+  currentRecord.moves.push(item);
+  if(mode==='lan'&&!remote&&conn?.open)conn.send({t:'move',uci:item.uci,fen:item.fenAfter});
+  updateAll();checkEnd();
+  if(!ended&&mode==='ai')setTimeout(maybeAITurn,120);
+  return true;
+}
+function updateAll(){
+  drawBoard();renderMoves();renderCaptured();
+  const turn=chess.turn()==='w'?'白方':'黑方';let s=`${turn}走棋`;if(chess.isCheck())s+=' · 将军';
+  if(replayMode)s=`回放 · ${replayIndex}/${currentRecord.moves.length}`;
+  $('#status').textContent=s;
+  $('#status2').textContent=`${modeName(mode)} · 回合 ${Math.ceil((chess.history().length+1)/2)}${mode==='ai'?' · '+DIFF[+$('#difficulty').value][0]:''}`;
+}
+function modeName(m){return ({local:'本地双人',ai:'人机对战',lan:'联机',replay:'回放'})[m]||m}
+function renderMoves(){
+  const list=$('#moveList');list.innerHTML='';const h=currentRecord?.moves||[];
+  for(let i=0;i<h.length;i+=2){let n=document.createElement('div');n.className='n';n.textContent=(i/2+1)+'.';list.appendChild(n);
+    for(let j=0;j<2;j++){let k=i+j;if(k<h.length){let b=document.createElement('button');b.textContent=h[k].san;b.onclick=()=>{if(replayMode)jumpReplay(k+1)};list.appendChild(b)}else list.appendChild(document.createElement('div'))}}
+  if(!replayMode)list.scrollTop=list.scrollHeight
+}
+function renderCaptured(){
+  const init={w:{p:8,n:2,b:2,r:2,q:1},b:{p:8,n:2,b:2,r:2,q:1}},now={w:{p:0,n:0,b:0,r:0,q:0},b:{p:0,n:0,b:0,r:0,q:0}};
+  for(const row of chess.board())for(const p of row){if(p&&p.type!=='k')now[p.color][p.type]++}
+  let out='';for(const c of ['w','b'])for(const t of ['q','r','b','n','p'])for(let i=0;i<init[c][t]-now[c][t];i++)out+=PIECE[c+t];
+  $('#captured').textContent=out||'—'
+}
+function checkEnd(){
+  if(!chess.isGameOver())return;
+  let result='1/2-1/2',reason='和棋';
+  if(chess.isCheckmate()){result=chess.turn()==='w'?'0-1':'1-0';reason='将杀'}
+  else if(chess.isStalemate())reason='逼和';
+  else if(chess.isThreefoldRepetition())reason='三次重复局面';
+  else if(chess.isInsufficientMaterial())reason='子力不足';
+  else if(chess.isDrawByFiftyMoves())reason='五十回合规则';
+  finish(result,reason,true)
+}
+function finish(result,reason,save=true){
+  if(ended)return;ended=true;if(currentRecord){currentRecord.result=result;currentRecord.reason=reason;currentRecord.duration=Date.now()-gameStart;currentRecord.timestamp=Date.now();
+    if(save){let a=getRecords();a.unshift(currentRecord);localStorage.setItem('aurumChessRecords',JSON.stringify(a.slice(0,200)));updateMenuMeta()}}
+  updateAll();
+  if(save&&mode==='ai'&&currentRecord?.rankedRequested)submitRankedAI(currentRecord).then(r=>{
+    if(r?.ok)dialog('计分完成',`本局 ${r.outcome==='win'?'胜':r.outcome==='draw'?'和':'负'} · 积分 ${r.rating_before} ${r.delta>=0?'+':''}${r.delta} → ${r.rating_after}`,[['确定',closeDialog]]);
+    else if(r?.error)dialog('对局结束',`${result} · ${reason}\n\n排行榜未计分：${r.error}`,[['确定',closeDialog]]);
+    else dialog('对局结束',`${result} · ${reason}`,[['确定',closeDialog]])
+  }); else dialog('对局结束',`${result} · ${reason}`,[['确定',closeDialog]])
+}
+function getRecords(){try{return JSON.parse(localStorage.getItem('aurumChessRecords')||'[]')}catch{return[]}}
+function renderRecords(){
+  const a=getRecords(),el=$('#recordsList');el.innerHTML='';
+  if(!a.length){el.innerHTML='<div class="empty">暂无对局记录</div>';return}
+  a.forEach((r,i)=>{let d=document.createElement('div');d.className='record';d.innerHTML=`<div><b>${r.result||'—'} · ${r.reason||''}</b><div class="meta">${modeName(r.mode)} · ${r.moves?.length||0} 半回合 · ${fmtTime(r.duration||0)} · ${new Date(r.timestamp).toLocaleString()}</div></div><span class="badge">回放</span>`;d.onclick=()=>openReplay(i);el.appendChild(d)})
+}
+function fmtTime(ms){let s=Math.round(ms/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
+function openReplay(i){
+  const r=getRecords()[i];if(!r)return;mode='replay';replayMode=true;currentRecord=r;replayIndex=0;orientation='w';ended=false;
+  chess=new Chess(r.startFen||undefined);lastMove=null;show('#game');$('#boardWrap').classList.add('replay-eval');$('#analysisPanel').style.display='block';$('#replayControls').style.display='flex';
+  $('#undoBtn').style.display='none';$('#drawBtn').style.display='none';$('#resignBtn').style.display='none';updateAll();settleBoardLayout();ensureEngine(true).then(analyzePosition)
+}
+function jumpReplay(n){
+  stopReplay();n=Math.max(0,Math.min(currentRecord.moves.length,n));replayIndex=n;
+  if(n===0){chess=new Chess(currentRecord.startFen||undefined);lastMove=null}
+  else{let item=currentRecord.moves[n-1];if(item.fenAfter){chess=new Chess(item.fenAfter)}else{chess=new Chess(currentRecord.startFen||undefined);for(let k=0;k<n;k++)chess.move(currentRecord.moves[k].san)};lastMove=parseUci(item.uci)}
+  updateAll();analyzePosition()
+}
+function parseUci(u){return u?{from:u.slice(0,2),to:u.slice(2,4)}:null}
+function stopReplay(){clearInterval(replayTimer);replayTimer=null}
+$$('#replayControls [data-r]').forEach(b=>b.onclick=()=>{
+  const a=b.dataset.r;if(a==='first')jumpReplay(0);if(a==='prev')jumpReplay(replayIndex-1);if(a==='next')jumpReplay(replayIndex+1);if(a==='last')jumpReplay(currentRecord.moves.length);
+  if(a==='play'){if(replayTimer){stopReplay();b.textContent='▶'}else{b.textContent='Ⅱ';replayTimer=setInterval(()=>{if(replayIndex>=currentRecord.moves.length){stopReplay();b.textContent='▶'}else jumpReplay(replayIndex+1)},1000/(+$('#replaySpeed').value))}}
+});
+addEventListener('keydown',e=>{if(!replayMode)return;if(e.key==='ArrowLeft')jumpReplay(replayIndex-1);if(e.key==='ArrowRight')jumpReplay(replayIndex+1);if(e.key==='Home')jumpReplay(0);if(e.key==='End')jumpReplay(currentRecord.moves.length);if(e.code==='Space'){e.preventDefault();$('#replayControls [data-r=play]').click()}});
+
+$('#flipBtn').onclick=()=>{orientation=orientation==='w'?'b':'w';drawBoard()};
+$('#undoBtn').onclick=()=>{
+  if(ended||mode==='lan')return;if(!currentRecord?.moves.length)return;
+  let n=mode==='ai'?2:1;while(n--&&currentRecord.moves.length){chess.undo();currentRecord.moves.pop()}lastMove=currentRecord.moves.length?parseUci(currentRecord.moves.at(-1).uci):null;ended=false;updateAll()
+};
+$('#resignBtn').onclick=()=>dialog('确认认输','认输后本局立即结束。',[['取消',closeDialog],['认输',()=>{closeDialog();if(mode==='lan')conn?.send({t:'resign'});finish(chess.turn()==='w'?'0-1':'1-0','认输')} ,'danger']]);
+$('#drawBtn').onclick=()=>{
+  if(mode==='lan'){if(conn?.open){conn.send({t:'drawOffer'});drawOfferPending=true;toast('已发送和棋请求')}else toast('尚未连接')}
+  else dialog('提议和棋','本地/人机模式将直接以和棋结束。',[['取消',closeDialog],['同意和棋',()=>{closeDialog();finish('1/2-1/2','协议和棋')}]])
+};
+
+async function maybeAITurn(){
+  if(mode!=='ai'||ended||chess.turn()===human)return;
+  engineBusy=true;updateAll();
+  let uci=null;
+  try{
+    if(activeEngineKind!=='builtin'&&engineReady)uci=await askBestMove(chess.fen());
+    if(!uci){uci=builtinBestMove();if(currentRecord)currentRecord.usedBuiltin=true;}
+  }catch(e){console.warn(e);uci=builtinBestMove();if(currentRecord)currentRecord.usedBuiltin=true;setEngineStatus('Stockfish 19 失败，已切换内置 AI','bad')}
+  if(uci){makeMove({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||undefined})}
+  engineBusy=false;updateAll()
+}
+function builtinBestMove(){
+  const moves=chess.moves({verbose:true});if(!moves.length)return null;const level=+$('#difficulty').value,depth=level<3?1:level<6?2:3;
+  let scored=moves.map(m=>{chess.move(m);let s=-negamax(depth-1,-1e9,1e9);chess.undo();s+=Math.random()*(8-level)*70;return [m,s]}).sort((a,b)=>b[1]-a[1]);
+  let pick=scored[Math.min(scored.length-1,Math.floor(Math.random()*Math.max(1,5-level/2)))][0];return pick.from+pick.to+(pick.promotion||'')
+}
+function negamax(d,a,b){
+  if(chess.isCheckmate())return -999999;if(chess.isDraw())return 0;if(d<=0)return staticEval()*(chess.turn()==='w'?1:-1);
+  let best=-1e9;for(const m of chess.moves({verbose:true})){chess.move(m);let v=-negamax(d-1,-b,-a);chess.undo();if(v>best)best=v;if(v>a)a=v;if(a>=b)break}return best
+}
+function staticEval(){let s=0;for(const row of chess.board())for(const p of row)if(p)s+=(p.color==='w'?1:-1)*VALUE[p.type];return s}
+
+const SF_VERSION='19.0.0';
+const SF_CDN_ROOTS=[
+  `https://cdn.jsdelivr.net/npm/stockfish@${SF_VERSION}/bin`,
+  `https://fastly.jsdelivr.net/npm/stockfish@${SF_VERSION}/bin`,
+  `https://gcore.jsdelivr.net/npm/stockfish@${SF_VERSION}/bin`,
+  `https://unpkg.com/stockfish@${SF_VERSION}/bin`
+];
+let lastEngineDiagnostics=[];
+function diag(msg){
+  const line=`[${new Date().toLocaleTimeString()}] ${msg}`;lastEngineDiagnostics.push(line);console.log('[SF19]',msg);
+  const el=$('#engineDiagLog');if(el)el.textContent=lastEngineDiagnostics.join('\n')
+}
+function setEngineStatus(t,state='',detail=''){
+  $('#engineStatus').textContent=t;$('#engineDot').className='engine-dot '+state;
+  const me=$('#menuEngineStatus'),md=$('#menuEngineDot'),det=$('#menuEngineDetail');
+  if(me)me.textContent=t;if(md)md.className='engine-dot '+state;if(det)det.textContent=detail||''
+}
+function withTimeout(promise,ms,label){
+  let id;const timeout=new Promise((_,rej)=>id=setTimeout(()=>rej(new Error(label+' 超时')),ms));
+  return Promise.race([promise,timeout]).finally(()=>clearTimeout(id))
+}
+async function fetchChecked(url,type='text'){
+  const r=await withTimeout(fetch(url,{mode:'cors',cache:'no-store',credentials:'omit'}),18000,'网络请求');
+  if(!r.ok)throw new Error(`${r.status} ${r.statusText} · ${url.split('/').pop()}`);
+  return type==='blob'?r.blob():type==='json'?r.json():r.text()
+}
+function sfStem(kind){return kind==='asm'?'stockfish-19-asm':kind==='full'?'stockfish-19-single':'stockfish-19-lite-single'}
+function isOpaqueLocal(){
+  return location.origin==='null'||location.protocol==='file:'||location.protocol==='content:';
+}
+function localBuildCandidates(kind){
+  if(isOpaqueLocal())return [];
+  const stem=sfStem(kind),pairs=[];
+  for(const dir of ['./','./stockfish/','./engine/'])pairs.push({
+    jsUrl:new URL(dir+stem+'.js',location.href).href,
+    wasmUrl:kind==='asm'?null:new URL(dir+stem+'.wasm',location.href).href,
+    label:`${stem} · 同源 ${dir}`,local:true,route:'同源 Worker'
+  });
+  return pairs
+}
+async function remoteBuildCandidates(kind){
+  const stem=sfStem(kind),out=[];
+  // npm 19.0.0 actually ships browser binaries under /bin/.
+  // Do not depend on data.jsdelivr manifest: content:// WebViews often block that API endpoint.
+  for(const root of SF_CDN_ROOTS){
+    const host=new URL(root).hostname;
+    out.push({
+      jsUrl:`${root}/${stem}.js`,
+      wasmUrl:kind==='asm'?null:`${root}/${stem}.wasm`,
+      label:`${stem} · ${host}`,
+      local:false,
+      route:'CDN /bin Worker'
+    });
+  }
+  return out
+}
+function attachWorkerMeta(w,build,route,urls=[]){w._buildLabel=build.label;w._loaderRoute=route;w._urls=urls;return w}
+function directWorker(build){
+  const url=build.wasmUrl?`${build.jsUrl}#${build.wasmUrl}`:build.jsUrl;
+  diag('尝试同源直接 Worker：'+build.jsUrl);return attachWorkerMeta(new Worker(url),build,'同源 Worker')
+}
+function proxyWorker(build){
+  // 远程脚本不能可靠地直接作为 Worker URL；用同源 Blob Worker + importScripts 代理。
+  // Stockfish.js 从 self.location.hash 读取 WASM 地址，所以将远程 WASM URL 放入代理 Worker 的 hash。
+  const code=`try{importScripts(${JSON.stringify(build.jsUrl)});}catch(e){postMessage('__AURUM_BOOT_ERROR__'+(e&&e.stack?e.stack:(e&&e.message?e.message:String(e))))}`;
+  const boot=URL.createObjectURL(new Blob([code],{type:'text/javascript'}));
+  const url=build.wasmUrl?`${boot}#${build.wasmUrl}`:boot;
+  diag('尝试 CDN 代理 Worker：'+build.label);return attachWorkerMeta(new Worker(url),build,build.route||'CDN 代理 Worker',[boot])
+}
+async function inlineScriptWorker(build){
+  // 兼容路线 A：只把 JS 下载到 Blob。WASM 仍保持 HTTPS URL。
+  // 这对 file:// 很重要：避免 Blob Worker 再跨 opaque-origin 读取第二个 Blob URL。
+  diag('尝试 JS Blob + HTTPS WASM：'+build.label);
+  const jsText=await fetchChecked(build.jsUrl,'text');
+  if(!jsText || jsText.length<1000 || /^\s*</.test(jsText))throw new Error('引擎 JS 响应异常（可能返回了 HTML 错误页）');
+  const jsBlob=URL.createObjectURL(new Blob([jsText],{type:'text/javascript'}));
+  try{
+    const w=new Worker(build.wasmUrl?`${jsBlob}#${build.wasmUrl}`:jsBlob);
+    return attachWorkerMeta(w,build,'JS Blob + HTTPS WASM',[jsBlob])
+  }catch(e){try{URL.revokeObjectURL(jsBlob)}catch{};throw e}
+}
+async function blobAllWorker(build){
+  // 最终路线：JS 与 WASM 都下载为 Blob。适合 CDN WASM fetch 被 CSP / MIME 干扰的环境。
+  diag('尝试完整 Blob 下载路线：'+build.label);
+  const jsText=await fetchChecked(build.jsUrl,'text');
+  if(!jsText || jsText.length<1000 || /^\s*</.test(jsText))throw new Error('引擎 JS 响应异常（可能返回了 HTML 错误页）');
+  const jsBlob=URL.createObjectURL(new Blob([jsText],{type:'text/javascript'}));let wasmBlob=null,w;
+  try{
+    if(build.wasmUrl){
+      const wb=await fetchChecked(build.wasmUrl,'blob');
+      const ab=await wb.arrayBuffer(),u=new Uint8Array(ab);
+      if(u.length<8 || u[0]!==0x00 || u[1]!==0x61 || u[2]!==0x73 || u[3]!==0x6d)throw new Error('WASM 响应不是有效 WebAssembly 文件');
+      wasmBlob=URL.createObjectURL(new Blob([ab],{type:'application/wasm'}))
+    }
+    w=new Worker(wasmBlob?`${jsBlob}#${wasmBlob}`:jsBlob);
+    return attachWorkerMeta(w,build,'完整 Blob Worker',[jsBlob,wasmBlob].filter(Boolean))
+  }catch(e){for(const u of [jsBlob,wasmBlob])if(u)try{URL.revokeObjectURL(u)}catch{};throw e}
+}
+function destroyWorker(w){if(!w)return;try{w.terminate()}catch{};for(const u of w._urls||[])try{URL.revokeObjectURL(u)}catch{}}
+function uciHandshake(w,label='Stockfish'){
+  return new Promise((res,rej)=>{
+    let gotUci=false,done=false;
+    const cleanup=()=>{clearTimeout(tm);w.removeEventListener('message',onMsg);w.removeEventListener('error',onErr);w.removeEventListener('messageerror',onMsgErr)};
+    const fail=e=>{if(done)return;done=true;cleanup();rej(e instanceof Error?e:new Error(String(e)))};
+    const ok=()=>{if(done)return;done=true;cleanup();res()};
+    const tm=setTimeout(()=>fail(new Error(gotUci?'isready 响应超时':'UCI 启动超时')),22000);
+    const onMsg=e=>{
+      const raw=e.data;
+      if(typeof raw==='string'&&raw.startsWith('__AURUM_BOOT_ERROR__'))return fail(new Error('Worker importScripts 失败：'+raw.slice(20)));
+      const lines=String(raw??'').split(/\r?\n/);
+      for(const line0 of lines){const line=line0.trim();if(!line)continue;
+        if(/^Stockfish\s/i.test(line))diag(label+'：'+line);
+        if(line==='uciok'){gotUci=true;diag(label+'：收到 uciok');try{w.postMessage('isready')}catch(e){return fail(e)}}
+        if(line==='readyok'){diag(label+'：收到 readyok');return ok()}
+      }
+    };
+    const onErr=e=>fail(new Error(e?.message||'Worker 启动错误'));
+    const onMsgErr=()=>fail(new Error('Worker messageerror'));
+    w.addEventListener('message',onMsg);w.addEventListener('error',onErr);w.addEventListener('messageerror',onMsgErr);
+    try{w.postMessage('uci')}catch(e){fail(e)}
+  })
+}
+async function testWorker(build,method){
+  let w=null;
+  try{
+    w=method==='direct'?directWorker(build):method==='proxy'?proxyWorker(build):method==='inline'?await inlineScriptWorker(build):await blobAllWorker(build);
+    await uciHandshake(w,build.label);diag(`成功：${build.label} · ${w._loaderRoute}`);return w
+  }catch(e){diag(`失败：${build.label} · ${method} · ${e.message||e}`);destroyWorker(w);throw e}
+}
+async function loadStockfish(kind='lite',keepDiagnostics=false){
+  if(!keepDiagnostics)lastEngineDiagnostics=[];
+  diag(`页面协议=${location.protocol}；origin=${location.origin}；WebAssembly=${typeof WebAssembly==='object'?'yes':'no'}；Worker=${typeof Worker==='function'?'yes':'no'}；crossOriginIsolated=${self.crossOriginIsolated===true}`);
+  if(isOpaqueLocal())diag('检测到 Android/file/content 本地档案环境：跳过 content:// 同源 Worker，直接使用 CORS 友好的 npm CDN /bin 构建。');
+  if(typeof Worker!=='function')throw new Error('浏览器不支持 Web Worker');
+  if(kind!=='asm'&&typeof WebAssembly!=='object')throw new Error('浏览器不支持 WebAssembly');
+  const candidates=[...localBuildCandidates(kind),...(await remoteBuildCandidates(kind))];let errors=[];
+  for(const build of candidates){
+    setEngineStatus('Stockfish 19 · 正在启动','','尝试：'+build.label);
+    const methods=build.local?['direct']:(isOpaqueLocal()?['inline','proxy','bloball']:['proxy','inline','bloball']);
+    for(const method of methods){
+      try{const w=await testWorker(build,method);setEngineStatus('Stockfish 19 · UCI 已就绪','ok',`${build.label} · ${w._loaderRoute}`);return w}
+      catch(e){errors.push(`${build.label}/${method}: ${e.message||e}`)}
+    }
+  }
+  throw new Error(errors.slice(-5).join('；')||'所有 Stockfish 19 加载路线均失败')
+}
+async function ensureEngine(forAnalysis=false){
+  if(forAnalysis&&analysisEngine)return true;if(!forAnalysis&&engine)return true;
+  let kind=forAnalysis?'lite':activeEngineKind==='sf19-full'?'full':activeEngineKind==='sf19-asm'?'asm':'lite',primaryError=null,w=null;
+  try{w=await loadStockfish(kind)}catch(e){primaryError=e;console.warn('Primary Stockfish 19 build failed:',e)}
+  if(!w&&kind!=='asm'){
+    try{diag('主 WASM 构建失败，开始 ASM-JS 最终兼容回退。');setEngineStatus('WASM 未启动 · 尝试 Stockfish 19 ASM','','ASM-JS 不依赖 WebAssembly');w=await loadStockfish('asm',true);w._asmFallback=true}
+    catch(e){console.warn('ASM fallback failed:',e);primaryError=new Error(`${primaryError?.message||'WASM 失败'}；ASM：${e.message||e}`)}
+  }
+  if(w){
+    if(forAnalysis){analysisEngine=w;setEngineStatus(w._asmFallback?'Stockfish 19 ASM 分析已就绪':'Stockfish 19 分析引擎已就绪','ok',`${w._buildLabel} · ${w._loaderRoute}`)}
+    else{engine=w;engineReady=true;configureEngine();setEngineStatus(w._asmFallback?'Stockfish 19 ASM 已就绪':'Stockfish 19 已就绪','ok',`${w._buildLabel} · ${w._loaderRoute}`)}
+    const dl=$('#engineDiagLog');if(dl)dl.textContent=lastEngineDiagnostics.join('\n');return true
+  }
+  engineReady=false;const msg=primaryError?.message||'未知加载错误';console.error('Stockfish 19 load failed:',primaryError);
+  setEngineStatus('Stockfish 19 加载失败 · 已启用内置 AI','bad',isOpaqueLocal()?'已尝试 jsDelivr/Fastly/Gcore/unpkg 的 npm /bin 构建；请查看诊断日志确认哪个 CDN 被当前 Android WebView 拦截':msg);
+  const dl=$('#engineDiagLog');if(dl)dl.textContent=lastEngineDiagnostics.join('\n')+'\n最终错误：'+msg;
+  if(forAnalysis)$('#analysis').innerHTML=`<div class="pv">分析引擎加载失败：${escapeHtml(msg)}<br>棋局回放仍可正常使用。</div>`;
+  return false
+}
+function configureEngine(){
+  if(!engine)return;const [name,skill,depth]=DIFF[+$('#difficulty').value];
+  // Stockfish 19 的 Skill Level 标准范围是 0..20。入门档通过较短思考时间削弱，不发送无效的负值。
+  engine.postMessage(`setoption name Skill Level value ${Math.max(0,Math.min(20,skill))}`)
+}
+function askBestMove(fen){
+  return new Promise((resolve,reject)=>{
+    const level=+$('#difficulty').value,w=engine,movetimes=[70,110,180,300,500,800,1300,2000],ms=movetimes[level]||500;
+    let timer=setTimeout(()=>{w.removeEventListener('message',on);try{w.postMessage('stop')}catch{};reject(new Error('engine timeout'))},Math.max(6000,ms+4000));
+    function on(e){const s=String(e.data||'');const m=s.match(/(?:^|\n)bestmove\s+(\S+)/);if(m){clearTimeout(timer);w.removeEventListener('message',on);resolve(m[1]&&m[1]!=='(none)'?m[1]:null)}}
+    w.addEventListener('message',on);w.postMessage('stop');w.postMessage(`position fen ${fen}`);w.postMessage(`go movetime ${ms}`)
+  })
+}
+async function analyzePosition(){
+  if(!replayMode)return;await ensureEngine(true);if(!analysisEngine)return;
+  const w=analysisEngine,fen=chess.fen();w.postMessage('stop');w.postMessage('setoption name MultiPV value 3');w.postMessage(`position fen ${fen}`);
+  const lines=new Map();
+  const on=e=>{let s=String(e.data||'');for(const line of s.split(/\r?\n/)){if(line.startsWith('info ')&&line.includes(' pv ')){
+      let dm=line.match(/\bdepth (\d+)/),mp=line.match(/\bmultipv (\d+)/),cp=line.match(/\bscore (cp|mate) (-?\d+)/),pv=line.match(/\bpv (.+)$/);
+      if(dm&&mp&&cp&&pv){lines.set(+mp[1],{depth:+dm[1],type:cp[1],v:+cp[2],pv:pv[1].split(' ').slice(0,20)});scheduleAnalysisRender(lines)}
+    }if(line.startsWith('bestmove ')){w.removeEventListener('message',on)}}};
+  w.addEventListener('message',on);w.postMessage('go depth 14')
+}
+let analysisRenderTimer=0,pendingAnalysisLines=null,lastAnalysisPaint=0;
+function scheduleAnalysisRender(lines){
+  pendingAnalysisLines=lines;
+  const now=performance.now(),wait=Math.max(0,110-(now-lastAnalysisPaint));
+  if(analysisRenderTimer)return;
+  analysisRenderTimer=setTimeout(()=>{
+    analysisRenderTimer=0;lastAnalysisPaint=performance.now();
+    if(pendingAnalysisLines)renderAnalysis(pendingAnalysisLines)
+  },wait)
+}
+function renderAnalysis(lines){
+  const el=$('#analysis');el.innerHTML='';let top=lines.get(1);if(top)setEval(scoreForWhite(top));
+  [...lines.entries()].sort((a,b)=>a[0]-b[0]).slice(0,3).forEach(([n,x])=>{let d=document.createElement('div');d.className='pv';d.innerHTML=`<b>#${n} ${formatScore(x)}</b> · depth ${x.depth}<br>${pvToSan(x.pv).join(' ')}`;el.appendChild(d)})
+}
+function scoreForWhite(x){if(x.type==='mate')return (x.v>0?10:-10)*(chess.turn()==='w'?1:-1);return (x.v/100)*(chess.turn()==='w'?1:-1)}
+function formatScore(x){if(x.type==='mate')return `${x.v>0?'M':'-M'}${Math.abs(x.v)}`;let v=x.v/100;return (v>=0?'+':'')+v.toFixed(2)}
+function setEval(v){let p=50+Math.tanh(v/4)*45;$('#evalWhite').style.height=p+'%';$('#evalLabel').textContent=Math.abs(v)>=9.9?'M':(v>=0?'+':'')+v.toFixed(1)}
+function pvToSan(pv){let c=new Chess(chess.fen()),out=[];for(const u of pv.slice(0,10)){try{let m=c.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||undefined});if(!m)break;out.push(m.san)}catch{break}}return out}
+
+async function startPeer(code){
+  closePeer();setEngineStatus('正在连接 PeerJS…');const id='aurum-chess-'+code;
+  const opts={debug:1,config:{iceServers:[
+    {urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},
+    {urls:'stun:stun.sipgate.net:3478'},{urls:'stun:global.stun.twilio.com:3478'}
+  ]}};
+  // 先尝试成为房主；ID 被占用则用随机 ID 加入该房间。
+  await new Promise(resolve=>{
+    peer=new Peer(id,opts);let settled=false;
+    const t=setTimeout(()=>{if(!settled){toast('连接超时：可能受 NAT / 防火墙限制');resolve()}},12000);
+    peer.on('open',()=>{host=true;human='w';orientation='w';setEngineStatus(`房间 ${code} 已创建，等待对方…`,'ok');settled=true;clearTimeout(t);resolve()});
+    peer.on('connection',c=>attachConn(c));
+    peer.on('error',err=>{
+      if(err.type==='unavailable-id'){try{peer.destroy()}catch{};peer=new Peer(undefined,opts);peer.on('open',()=>{host=false;human='b';orientation='b';conn=peer.connect(id,{reliable:true});attachConn(conn);settled=true;clearTimeout(t);resolve()});peer.on('error',e=>peerError(e))}
+      else peerError(err)
+    })
+  })
+}
+function peerError(err){
+  const map={'peer-unavailable':'房间不存在或房主尚未进入','network':'信令网络错误','server-error':'PeerJS 信令服务器错误','socket-error':'信令连接失败','webrtc':'WebRTC 建链失败'};
+  toast(map[err.type]||('联机错误：'+err.type));setEngineStatus(map[err.type]||'联机失败','bad')
+}
+function attachConn(c){
+  conn=c;c.on('open',()=>{setEngineStatus(`房间 ${room} 已连接 · 你执${human==='w'?'白':'黑'}`,'ok');toast('联机成功');updateAll()});
+  c.on('data',data=>{
+    if(data.t==='move'){makeMove({from:data.uci.slice(0,2),to:data.uci.slice(2,4),promotion:data.uci[4]||undefined},true)}
+    if(data.t==='resign')finish(human==='w'?'1-0':'0-1','对方认输');
+    if(data.t==='drawOffer')dialog('和棋请求','对方提出和棋。',[['拒绝',()=>{closeDialog();conn.send({t:'drawReply',ok:false})}],['同意',()=>{closeDialog();conn.send({t:'drawReply',ok:true});finish('1/2-1/2','协议和棋')} ,'primary']]);
+    if(data.t==='drawReply'){drawOfferPending=false;if(data.ok)finish('1/2-1/2','协议和棋');else toast('对方拒绝了和棋请求')}
+  });
+  c.on('close',()=>{if(!ended)toast('联机已断开')});c.on('error',peerError)
+}
+function closePeer(){try{conn?.close()}catch{}try{peer?.destroy()}catch{}conn=peer=null}
+function stopEngines(){for(const w of [engine,analysisEngine])destroyWorker(w);engine=analysisEngine=null;engineReady=false}
+
+function bg(){
+  const c=$('#bg'),x=c.getContext('2d');let t=0;
+  function size(){let d=devicePixelRatio||1;c.width=innerWidth*d;c.height=innerHeight*d;x.setTransform(d,0,0,d,0,0)}size();addEventListener('resize',size);
+  (function loop(){t+=.006;let w=innerWidth,h=innerHeight;x.clearRect(0,0,w,h);x.fillStyle='#08090d';x.fillRect(0,0,w,h);
+    for(let i=0;i<5;i++){let px=w*(.18+.16*i)+Math.sin(t*(1+i*.1)+i)*100,py=h*(.2+.14*(i%3))+Math.cos(t*.8+i)*80,r=Math.max(w,h)*.32;
+      let g=x.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,`rgba(${i%2?75:120},${i%2?54:82},${i%2?28:34},.10)`);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,w,h)}
+    requestAnimationFrame(loop)})()
+}
+bg();updateMenuMeta();
+if(location.protocol==='file:'){
+  const h=$('#protocolHint');if(h)h.style.display='block';
+  const det=$('#menuEngineDetail');if(det)det.textContent='检测到 file://：建议用 GitHub Pages 或 localhost HTTP(S)，否则 Worker/WASM 可能被拦截';
+}
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&replayTimer)stopReplay()});
+</script>
+</body>
+</html>
